@@ -2,7 +2,10 @@ const express = require("express");
 const app = express();
 const PORT = 8080;
 
-function generateRandomString() {}
+function generateRandomString() {
+  let randomString = '';
+  return randomString += Math.random();
+}
 
 app.use(express.urlencoded({ extended: true }));
 
@@ -33,6 +36,8 @@ app.get("/urls", (req, res) => {
 app.post("/urls", (req, res) => {
   console.log(req.body); // Log the POST request body to the console
   res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  urlDatabase[generateRandomString()] = req.body['longURL'];
+  console.log(urlDatabase);
 });
 
 app.get("/urls/new", (req, res) => {

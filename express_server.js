@@ -72,6 +72,22 @@ app.post("/urls/:id/update", (req, res) => {
   res.redirect("/urls");
 });
 
+app.get("/urls/:id/edit", (req, res) => {
+  const id = req.params.id;
+  if (!urlDatabase[id]) {
+    return res.status(404).send("URL not found");
+  }
+  const templateVars = { id, longURL: urlDatabase[id] };
+  res.render("urls_edit", templateVars);
+});
+
+app.post("/login", (req, res) => {
+  const user = req.params.username;
+  console.log(user);
+  res.cookie(`username`, `${user}`);
+  res.redirect("/urls");
+});
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });

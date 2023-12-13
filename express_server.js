@@ -42,14 +42,12 @@ app.post("/urls", (req, res) => {
   console.log(req.body); // Log the POST request body to the console
   const id = generateRandomString()
   urlDatabase[id] = req.body['longURL'];
-  // res.send("Ok"); // Respond with 'Ok' (we will replace this)
   res.redirect(`/urls/${id}`); // Redirect to the /urls:id page
 });
 
 app.get("/urls/new", (req, res) => {
   const templateVars = {
     username: req.cookies["username"],
-    // ... any other vars
   };
   res.render("urls_new");
 });
@@ -60,7 +58,6 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
-  // const longURL = ...
   res.redirect(longURL);
 });
 

@@ -17,11 +17,22 @@
     />
     <title>TinyApp</title>
   </head>
-  <body>
-    <form action="/urls/<%= id %>/update" method="POST">
-      <label for="longURL">Edit URL:</label>
-      <input type="text" id="longURL" name="longURL" value="<%= longURL %>">
-      <button type="submit">Update</button>
-    </form>
-  </body>
+  <main style="margin: 1em;">
+    <h3>Register</h3>
+    <body>
+      <div>
+        <form method="POST" action="/register">
+          <label>Enter email address:</label>
+          <input type="email" name="email">
+          <label>Enter password:</label>
+          <input type="password" name="password">
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+      </div>
+      <div>
+        <form>
+        </form>
+      </div>
+    </body>
+  </main>
 </html>

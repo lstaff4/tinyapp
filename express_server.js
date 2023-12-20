@@ -98,18 +98,26 @@ app.get("/register", (req, res) => {
 })
 
 app.post("/register", (req, res) => {
+  if (req.body.email === '' || req.body.password === '') {
+    res.status(400).send("Required input not found.")
+  };
+  for (object in users) {
+    if (users[object]['email'] === req.body.email) {
+      res.status(400).send("Email is already registered.")
+    }
+  }
   const id = generateRandomString();
   const email = req.body.email;
   const password = req.body.password;
   // const userData = {id, email, password}
   users[id] = {id, email, password};
   res.cookie(`user_id`, id);
-  console.log(id);
-  console.log(users[id]);
-  const user_id = req.cookies['user_id'];
-  console.log(user_id);
-  const user = users[user_id];
-  console.log(user);
+  // console.log(id);
+  // console.log(users[id]);
+  // const user_id = req.cookies['user_id'];
+  // console.log(user_id);
+  // const user = users[user_id];
+  // console.log(user);
   res.redirect("/urls");
 })
 

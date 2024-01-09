@@ -7,12 +7,10 @@ function generateRandomString() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let randomString = '';
   const length = 6;
-
   for (let i = 0; i < length; i++) {
     const randomIndex = Math.floor(Math.random() * characters.length);
     randomString += characters.charAt(randomIndex);
   }
-
   return randomString;
 }
 
@@ -27,6 +25,15 @@ const users = {
     email: "user2@example.com",
     password: "dishwasher-funk",
   },
+};
+
+function searchThroughUsers(input, userItem) {
+  for (object in users) {
+    if (users[object][userItem] === input) {
+      return true;
+    }
+  }
+  return false;
 };
 
 app.use(express.urlencoded({ extended: true }));
@@ -145,15 +152,28 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const user = req.body.username;
-  console.log(user);
-  res.cookie(`username`, `${user}`);
+  const templateVars = { 
+    urls: urlDatabase, 
+    user: users[req.cookies['user_id']]
+  };
+  if (!searchThroughUsers(req.body.email, 'email')) {
+    res.status(403).send(`No account was found using this email.`)
+  }
+  for (object in users) {
+    if (users[object]['email'] === req.body.email) {
+      if (users[object]['password'] === req.body.password) {
+        res.cookie(`user_id`, users[object]['id']);
+      } else {
+        res.status(403).send(`You have submitted the incorrect password.`);
+      }
+    }
+  }
   res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
-  res.redirect('/urls');
+  res.clearCookie('user_id');
+  res.redirect('/login');
 })
 
 app.listen(PORT, () => {

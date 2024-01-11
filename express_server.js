@@ -3,7 +3,7 @@ const express = require("express");
 const app = express();
 const PORT = 8080;
 
-function generateRandomString() {
+const generateRandomString = function() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let randomString = '';
   const length = 6;
@@ -27,7 +27,7 @@ const users = {
   },
 };
 
-function searchThroughUsers(input, userItem) {
+const searchThroughUsers = function(input, userItem) {
   for (object in users) {
     if (users[object][userItem] === input) {
       return true;
@@ -36,6 +36,27 @@ function searchThroughUsers(input, userItem) {
   return false;
 };
 
+const urlDatabase = {
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
+  },
+};
+
+const urlsForUser = function(id) {
+  let userUrls = {};
+  for (url in urlDatabase) {
+    if (urlDatabase[url].userID === id){
+      userUrls[url] = urlDatabase[url];
+    }
+  }
+  return userUrls;
+}
+
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use((req, res, next) => {
@@ -43,11 +64,6 @@ app.use((req, res, next) => {
   next();
 })
 app.set("view engine", "ejs");
-
-const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
-};
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -62,6 +78,9 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  if (!req.cookies['user_id']) {
+    res.send("<html><body>You cannot view URLs on this site if you are not logged in!</body></html>\n")
+  }
   const templateVars = { 
     urls: urlDatabase, 
     user: users[req.cookies['user_id']]
@@ -71,11 +90,13 @@ app.get("/urls", (req, res) => {
 
 app.post("/urls", (req, res) => {
   if (!req.cookies['user_id']) {
-    res.send("<html><body>You cannot shorten URLs on this site if you are not logged in!</body></html>\n")
+    return res.send("<html><body>You cannot shorten URLs on this site if you are not logged in!</body></html>\n");
   }
   console.log(req.body); // Log the POST request body to the console
   const id = generateRandomString();
-  urlDatabase[id] = req.body['longURL'];
+  urlDatabase[id] = {};
+  urlDatabase[id]['longURL'] = req.body.longURL;
+  urlDatabase[id]['user_id'] = req.cookies['user_id'];
   res.redirect(`/urls/${id}`); // Redirect to the /urls:id page
 });
 
@@ -90,36 +111,51 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
+  if (!urlDatabase[req.params.id]) {
+    return res.send("<html><body>This id does not exist!</body></html>\n")
+  }
+  if (!req.cookies['user_id']) {
+    return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>")
+  }
+  let idValid = false
+  for (url in urlsForUser('user_id')){
+    if (req.params.id === url) {
+      idValid = true;
+      break;
+    }
+  }
+  if (idValid === false) {
+    return res.send("<html><body>You are not the owner of this url!</body></html>");
+  }
   const templateVars = { 
     id: req.params.id, 
-    longURL: urlDatabase[req.params.id], 
+    longURL: urlDatabase[req.params.id].longURL, 
     user: users[req.cookies['user_id']]
   };
   res.render("urls_show", templateVars);
 });
 
 app.get("/u/:id", (req, res) => {
-  longURL = urlDatabase[req.params.id];
   if (!urlDatabase[req.params.id]) {
-    res.send("<html><body>This id does not exist!</body></html>\n")
+    return res.send("<html><body>This id does not exist!</body></html>\n")
   }
-  res.redirect(longURL);
+  return res.redirect(urlDatabase[req.params.id]['longURL']);
 });
 
 app.get("/register", (req, res) => {
   if (req.cookies['user_id']) {
-    res.redirect('/urls');
+    return res.redirect('/urls');
   }
   res.render("urls_register");
 })
 
 app.post("/register", (req, res) => {
   if (req.body.email === '' || req.body.password === '') {
-    res.status(400).send("Required input not found.")
+    return res.status(400).send("Required input not found.")
   };
   for (object in users) {
     if (users[object]['email'] === req.body.email) {
-      res.status(400).send("Email is already registered.")
+       return res.status(400).send("Email is already registered.")
     }
   }
   const id = generateRandomString();
@@ -131,30 +167,59 @@ app.post("/register", (req, res) => {
 })
 
 app.post("/urls/:id/delete", (req, res) => {
+  if (!urlDatabase[req.params.id]) {
+    return res.send("<html><body>This id does not exist!</body></html>\n")
+  }
+  if (!req.cookies['user_id']) {
+    return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>")
+  }
+  let idValid = false
+  for (url in urlsForUser('user_id')){
+    if (req.params.id === url) {
+      idValid = true;
+      break;
+    }
+  }
+  if (idValid === false) {
+    return res.send("<html><body>You are not the owner of this url!</body></html>");
+  }
   const idToDelete = req.params.id;
 
   if (urlDatabase[idToDelete]) {
     delete urlDatabase[idToDelete];
-    res.redirect("/urls");
+    return res.redirect("/urls");
   } else {
-    res.status(404).send("URL not found");
+    return res.status(404).send("URL not found");
   }
 });
 
 app.post("/urls/:id/update", (req, res) => {
-  urlDatabase[req.params.id] = req.body.longURL;
+  urlDatabase[req.params.id].longURL = req.body.longURL;
   console.log(`TEST 1: ${req.params.id}`);
   res.redirect("/urls");
 });
 
 app.get("/urls/:id/edit", (req, res) => {
-  const id = req.params.id;
-  if (!urlDatabase[id]) {
-    return res.status(404).send("URL not found");
+  if (!urlDatabase[req.params.id]) {
+    return res.send("<html><body>This id does not exist!</body></html>\n")
   }
+  if (!req.cookies['user_id']) {
+    return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>")
+  }
+  let idValid = false
+  for (url in urlsForUser('user_id')){
+    if (req.params.id === url) {
+      idValid = true;
+      break;
+    }
+  }
+  if (idValid === false) {
+    return res.send("<html><body>You are not the owner of this url!</body></html>");
+  }
+  const id = req.params.id;
   const templateVars = { 
     id,
-    longURL: urlDatabase[id],
+    longURL: urlDatabase[id]['longURL'],
     user: users[req.cookies['user_id']]
   };
   res.render("urls_edit", templateVars);
@@ -173,14 +238,14 @@ app.post("/login", (req, res) => {
     user: users[req.cookies['user_id']]
   };
   if (!searchThroughUsers(req.body.email, 'email')) {
-    res.status(403).send(`No account was found using this email.`)
+    return res.status(403).send(`No account was found using this email.`)
   }
   for (object in users) {
     if (users[object]['email'] === req.body.email) {
       if (users[object]['password'] === req.body.password) {
         res.cookie(`user_id`, users[object]['id']);
       } else {
-        res.status(403).send(`You have submitted the incorrect password.`);
+        return res.status(403).send(`You have submitted the incorrect password.`);
       }
     }
   }

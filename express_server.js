@@ -1,5 +1,6 @@
 const cookieParser = require('cookie-parser');
 const express = require("express");
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
 
@@ -18,12 +19,12 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur",
+    password: bcrypt.hashSync("purple-monkey-dinosaur"),
   },
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk",
+    password: bcrypt.hashSync("dishwasher-funk"),
   },
 };
 
@@ -79,7 +80,7 @@ app.get("/hello", (req, res) => {
 
 app.get("/urls", (req, res) => {
   if (!req.cookies['user_id']) {
-    res.send("<html><body>You cannot view URLs on this site if you are not logged in!</body></html>\n")
+    return res.send("<html><body>You cannot view URLs on this site if you are not logged in!</body></html>\n")
   }
   const templateVars = { 
     urls: urlDatabase, 
@@ -102,7 +103,7 @@ app.post("/urls", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   if (!req.cookies['user_id']) {
-    res.redirect('/login');
+    return res.redirect('/login');
   }
   const templateVars = {
     user: users[req.cookies['user_id']]
@@ -161,7 +162,12 @@ app.post("/register", (req, res) => {
   const id = generateRandomString();
   const email = req.body.email;
   const password = req.body.password;
-  users[id] = {id, email, password};
+  const hashedPassword = bcrypt.hashSync(password, 10);
+  users[id] = {
+    id, 
+    email, 
+    password: hashedPassword,
+  };
   res.cookie(`user_id`, id);
   res.redirect("/urls");
 })
@@ -237,14 +243,16 @@ app.post("/login", (req, res) => {
     urls: urlDatabase, 
     user: users[req.cookies['user_id']]
   };
+  // const hashedPassword = bcrypt.hashSync(req.body.password);
   if (!searchThroughUsers(req.body.email, 'email')) {
     return res.status(403).send(`No account was found using this email.`)
   }
   for (object in users) {
     if (users[object]['email'] === req.body.email) {
-      if (users[object]['password'] === req.body.password) {
+      if (bcrypt.compareSync(req.body.password, users[object].password)) {
         res.cookie(`user_id`, users[object]['id']);
       } else {
+        console.log(req.body.password,users[object].password);
         return res.status(403).send(`You have submitted the incorrect password.`);
       }
     }
@@ -254,7 +262,7 @@ app.post("/login", (req, res) => {
 
 app.post("/logout", (req, res) => {
   res.clearCookie('user_id');
-  res.redirect('/login');
+  return res.redirect('/login');
 })
 
 app.listen(PORT, () => {

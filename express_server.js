@@ -1,7 +1,5 @@
-const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const express = require("express");
-const getUserByEmail = require('./helpers.js');
 const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
@@ -15,7 +13,7 @@ const generateRandomString = function() {
     randomString += characters.charAt(randomIndex);
   }
   return randomString;
-}
+};
 
 const users = {
   userRandomID: {
@@ -31,7 +29,7 @@ const users = {
 };
 
 const searchThroughUsers = function(input, userItem) {
-  for (object in users) {
+  for (let object in users) {
     if (users[object][userItem] === input) {
       return true;
     }
@@ -52,16 +50,15 @@ const urlDatabase = {
 
 const urlsForUser = function(id) {
   let userUrls = {};
-  for (url in urlDatabase) {
-    if (urlDatabase[url].userID === id){
+  for (let url in urlDatabase) {
+    if (urlDatabase[url].userID === id) {
       userUrls[url] = urlDatabase[url];
     }
   }
   return userUrls;
-}
+};
 
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use(cookieSession({
   name: 'session',
   keys: [
@@ -71,7 +68,7 @@ app.use(cookieSession({
 app.use((req, res, next) => {
   res.locals.user = users[req.session.user_id];
   next();
-})
+});
 app.set("view engine", "ejs");
 
 app.get("/", (req, res) => {
@@ -91,10 +88,10 @@ app.get("/hello", (req, res) => {
 
 app.get("/urls", (req, res) => {
   if (!req.session.user_id) {
-    return res.send("<html><body>You cannot view URLs on this site if you are not logged in!</body></html>\n")
+    return res.send("<html><body>You cannot view URLs on this site if you are not logged in!</body></html>\n");
   }
-  const templateVars = { 
-    urls: urlDatabase, 
+  const templateVars = {
+    urls: urlDatabase,
     user: users[req.session.user_id]
   };
   res.render("urls_index", templateVars);
@@ -119,19 +116,19 @@ app.get("/urls/new", (req, res) => {
   const templateVars = {
     user: users[req.session.user_id]
   };
-  res.render("urls_new");
+  res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    return res.send("<html><body>This id does not exist!</body></html>\n")
+    return res.send("<html><body>This id does not exist!</body></html>\n");
   }
   if (!req.session.user_id) {
-    return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>")
+    return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>");
   }
-  let idValid = false
-  let userUrls = urlsForUser(req.session.user_id)
-  for (url in userUrls){
+  let idValid = false;
+  let userUrls = urlsForUser(req.session.user_id);
+  for (let url in userUrls) {
     if (req.params.id === url) {
       idValid = true;
       break;
@@ -140,9 +137,9 @@ app.get("/urls/:id", (req, res) => {
   if (idValid === false) {
     return res.send("<html><body>You are not the owner of this url!</body></html>");
   }
-  const templateVars = { 
-    id: req.params.id, 
-    longURL: urlDatabase[req.params.id].longURL, 
+  const templateVars = {
+    id: req.params.id,
+    longURL: urlDatabase[req.params.id].longURL,
     user: users[req.session.user_id]
   };
   res.render("urls_show", templateVars);
@@ -150,7 +147,7 @@ app.get("/urls/:id", (req, res) => {
 
 app.get("/u/:id", (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    return res.send("<html><body>This id does not exist!</body></html>\n")
+    return res.send("<html><body>This id does not exist!</body></html>\n");
   }
   return res.redirect(urlDatabase[req.params.id]['longURL']);
 });
@@ -160,15 +157,15 @@ app.get("/register", (req, res) => {
     return res.redirect('/urls');
   }
   res.render("urls_register");
-})
+});
 
 app.post("/register", (req, res) => {
   if (req.body.email === '' || req.body.password === '') {
-    return res.status(400).send("Required input not found.")
-  };
-  for (object in users) {
+    return res.status(400).send("Required input not found.");
+  }
+  for (let object in users) {
     if (users[object]['email'] === req.body.email) {
-       return res.status(400).send("Email is already registered.")
+      return res.status(400).send("Email is already registered.");
     }
   }
   const id = generateRandomString();
@@ -176,23 +173,23 @@ app.post("/register", (req, res) => {
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password, 10);
   users[id] = {
-    id, 
-    email, 
+    id,
+    email,
     password: hashedPassword,
   };
   req.session.user_id = id;
   res.redirect("/urls");
-})
+});
 
 app.post("/urls/:id/delete", (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    return res.send("<html><body>This id does not exist!</body></html>\n")
+    return res.send("<html><body>This id does not exist!</body></html>\n");
   }
   if (!req.session.user_id) {
-    return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>")
+    return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>");
   }
-  let idValid = false
-  for (url in urlsForUser(req.session.user_id)){
+  let idValid = false;
+  for (let url in urlsForUser(req.session.user_id)) {
     if (req.params.id === url) {
       idValid = true;
       break;
@@ -219,13 +216,13 @@ app.post("/urls/:id/update", (req, res) => {
 
 app.get("/urls/:id/edit", (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    return res.send("<html><body>This id does not exist!</body></html>\n")
+    return res.send("<html><body>This id does not exist!</body></html>\n");
   }
   if (!req.session.user_id) {
-    return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>")
+    return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>");
   }
-  let idValid = false
-  for (url in urlsForUser(req.session.user_id)){
+  let idValid = false;
+  for (let url in urlsForUser(req.session.user_id)) {
     if (req.params.id === url) {
       idValid = true;
       break;
@@ -235,7 +232,7 @@ app.get("/urls/:id/edit", (req, res) => {
     return res.send("<html><body>You are not the owner of this url!</body></html>");
   }
   const id = req.params.id;
-  const templateVars = { 
+  const templateVars = {
     id,
     longURL: urlDatabase[id]['longURL'],
     user: users[req.session.user_id]
@@ -251,15 +248,15 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const templateVars = { 
-    urls: urlDatabase, 
+  const templateVars = {
+    urls: urlDatabase,
     user: users[req.session.user_id]
   };
   // const hashedPassword = bcrypt.hashSync(req.body.password);
   if (!searchThroughUsers(req.body.email, 'email')) {
-    return res.status(403).send(`No account was found using this email.`)
+    return res.status(403).send(`No account was found using this email.`);
   }
-  for (object in users) {
+  for (let object in users) {
     if (users[object]['email'] === req.body.email) {
       if (bcrypt.compareSync(req.body.password, users[object].password)) {
         req.session.user_id = users[object]['id'];
@@ -275,7 +272,7 @@ app.post("/login", (req, res) => {
 app.post("/logout", (req, res) => {
   req.session.user_id = null;
   return res.redirect('/login');
-})
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);

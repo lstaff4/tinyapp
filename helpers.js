@@ -1,5 +1,5 @@
 const getUserByEmail = function(email, database) {
-  for (id in database) {
+  for (let id in database) {
     if (database[id].email === email) {
       let user = id;
       return user;

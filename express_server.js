@@ -1,7 +1,7 @@
 const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const express = require("express");
-const getUserByEmail = require('getUserByEmail');
+const getUserByEmail = require('./helpers.js');
 const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
@@ -75,7 +75,10 @@ app.use((req, res, next) => {
 app.set("view engine", "ejs");
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  if (req.session.user_id) {
+    return res.redirect(`/urls/`);
+  }
+  res.redirect('/login/');
 });
 
 app.get("/urls.json", (req, res) => {
@@ -105,7 +108,7 @@ app.post("/urls", (req, res) => {
   const id = generateRandomString();
   urlDatabase[id] = {};
   urlDatabase[id]['longURL'] = req.body.longURL;
-  urlDatabase[id]['user_id'] = req.session.user_id;
+  urlDatabase[id]['userID'] = req.session.user_id;
   res.redirect(`/urls/${id}`); // Redirect to the /urls:id page
 });
 
@@ -127,7 +130,8 @@ app.get("/urls/:id", (req, res) => {
     return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>")
   }
   let idValid = false
-  for (url in urlsForUser('user_id')){
+  let userUrls = urlsForUser(req.session.user_id)
+  for (url in userUrls){
     if (req.params.id === url) {
       idValid = true;
       break;
@@ -188,7 +192,7 @@ app.post("/urls/:id/delete", (req, res) => {
     return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>")
   }
   let idValid = false
-  for (url in urlsForUser('user_id')){
+  for (url in urlsForUser(req.session.user_id)){
     if (req.params.id === url) {
       idValid = true;
       break;
@@ -221,7 +225,7 @@ app.get("/urls/:id/edit", (req, res) => {
     return res.send("<html><body>You cannot view the url pages if you are not logged in!</body></html>")
   }
   let idValid = false
-  for (url in urlsForUser('user_id')){
+  for (url in urlsForUser(req.session.user_id)){
     if (req.params.id === url) {
       idValid = true;
       break;
